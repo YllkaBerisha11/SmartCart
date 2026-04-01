@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const Review = require("../models/Review");
 
-// GET të gjitha reviews
+// GET /api/reviews - Shiko të gjitha reviews
 router.get("/", async (req, res) => {
   try {
     const reviews = await Review.find().sort({ createdAt: -1 });
@@ -12,10 +12,10 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET reviews për një produkt
+// GET /api/reviews/product/:productId - Shiko reviews për një produkt
 router.get("/product/:productId", async (req, res) => {
   try {
-    const reviews = await Review.find({ 
+    const reviews = await Review.find({
       productId: Number(req.params.productId)
     }).sort({ createdAt: -1 });
     res.json(reviews);
@@ -24,7 +24,7 @@ router.get("/product/:productId", async (req, res) => {
   }
 });
 
-// POST review të re
+// POST /api/reviews - Krijo review të re
 router.post("/", async (req, res) => {
   const { productId, userId, username, rating, comment } = req.body;
   if (!productId || !userId || !username || !rating || !comment) {
@@ -39,7 +39,26 @@ router.post("/", async (req, res) => {
   }
 });
 
-// DELETE review
+// PUT /api/reviews/:id - Përditëso review
+router.put("/:id", async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    if (!rating || !comment) {
+      return res.status(400).json({ message: "Rating dhe komenti janë të detyrueshëm!" });
+    }
+    const updated = await Review.findByIdAndUpdate(
+      req.params.id,
+      { rating, comment },
+      { new: true, runValidators: true }
+    );
+    if (!updated) return res.status(404).json({ message: "Review nuk u gjet!" });
+    res.json({ message: "✅ Review u përditësua!", review: updated });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// DELETE /api/reviews/:id - Fshi review
 router.delete("/:id", async (req, res) => {
   try {
     const deleted = await Review.findByIdAndDelete(req.params.id);

@@ -1,123 +1,217 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 
-function Navbar() {
-  const [cartCount, setCartCount] = useState(0);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Montserrat:wght@300;400;500;600&display=swap');
+
+  .navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    transition: all 0.4s ease;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  .navbar.scrolled {
+    background: rgba(10,10,10,0.97);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(201,168,76,0.15);
+  }
+
+  .navbar.top {
+    background: transparent;
+  }
+
+  .nav-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 60px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 26px;
+    font-weight: 300;
+    color: #C9A84C;
+    text-decoration: none;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 40px;
+    list-style: none;
+  }
+
+  .nav-link {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: rgba(245,240,232,0.7);
+    text-decoration: none;
+    transition: color 0.3s;
+    position: relative;
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0;
+    width: 0; height: 1px;
+    background: #C9A84C;
+    transition: width 0.3s ease;
+  }
+
+  .nav-link:hover, .nav-link.active { color: #C9A84C; }
+  .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+
+  .nav-cart {
+    position: relative;
+    cursor: pointer;
+    color: rgba(245,240,232,0.7);
+    font-size: 18px;
+    transition: color 0.3s;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-cart:hover { color: #C9A84C; }
+
+  .cart-badge {
+    position: absolute;
+    top: -8px; right: -8px;
+    background: #C9A84C;
+    color: #0A0A0A;
+    font-size: 9px;
+    font-weight: 700;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .nav-btn {
+    padding: 10px 28px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+  }
+
+  .nav-btn-outline {
+    background: transparent;
+    color: rgba(245,240,232,0.8);
+    border: 1px solid rgba(201,168,76,0.4);
+  }
+
+  .nav-btn-outline:hover {
+    border-color: #C9A84C;
+    color: #C9A84C;
+  }
+
+  .nav-btn-gold {
+    background: #C9A84C;
+    color: #0A0A0A;
+  }
+
+  .nav-btn-gold:hover {
+    background: #E8D5A3;
+    transform: translateY(-1px);
+  }
+
+  .nav-user {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: #C9A84C;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 768px) {
+    .nav-inner { padding: 0 24px; }
+    .nav-links { display: none; }
+  }
+`;
+
+export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const { isAuthenticated, user, logout } = useAuth();
+  const { cartCount } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    const updateNav = () => {
-      const cart = JSON.parse(localStorage.getItem("cart")) || [];
-      setCartCount(cart.reduce((acc, item) => acc + item.quantity, 0));
-      setIsLoggedIn(!!localStorage.getItem("token"));
-    };
-    updateNav();
-    window.addEventListener("storage", updateNav);
-    const interval = setInterval(updateNav, 500);
-
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => setScrolled(window.scrollY > 40);
     window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.removeEventListener("storage", updateNav);
-      window.removeEventListener("scroll", handleScroll);
-      clearInterval(interval);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("cart");
-    setIsLoggedIn(false);
+    logout();
     navigate("/login");
   };
 
-  const isActive = (path) => location.pathname === path;
-
-  const linkStyle = (path) => ({
-    color: isActive(path) ? "#e94560" : "rgba(255,255,255,0.8)",
-    textDecoration: "none",
-    fontSize: "15px",
-    fontWeight: isActive(path) ? "700" : "500",
-    padding: "6px 4px",
-    borderBottom: isActive(path) ? "2px solid #e94560" : "2px solid transparent",
-    transition: "all 0.2s",
-  });
-
   return (
-    <nav style={{
-      position: "sticky", top: 0, zIndex: 100,
-      background: scrolled
-        ? "rgba(15, 12, 41, 0.97)"
-        : "linear-gradient(135deg, #0f0c29, #302b63)",
-      backdropFilter: "blur(10px)",
-      padding: "0 40px",
-      height: "64px",
-      display: "flex", alignItems: "center", justifyContent: "space-between",
-      boxShadow: scrolled ? "0 4px 30px rgba(0,0,0,0.3)" : "none",
-      transition: "all 0.3s",
-      fontFamily: "'Segoe UI', sans-serif",
-    }}>
-      {/* LOGO */}
-      <Link to="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: "10px" }}>
-        <span style={{ fontSize: "24px" }}>🛒</span>
-        <span style={{ color: "white", fontWeight: "900", fontSize: "20px", letterSpacing: "-0.5px" }}>
-          Smart<span style={{ color: "#e94560" }}>Cart</span>
-        </span>
-      </Link>
+    <>
+      <style>{styles}</style>
+      <nav className={`navbar ${scrolled ? "scrolled" : "top"}`}>
+        <div className="nav-inner">
+          <Link to="/" className="nav-brand">SmartCart</Link>
 
-      {/* LINKS */}
-      <div style={{ display: "flex", alignItems: "center", gap: "28px" }}>
-        <Link to="/" style={linkStyle("/")}>Home</Link>
-        <Link to="/products" style={linkStyle("/products")}>Products</Link>
+          <ul className="nav-links">
+            {[
+              { to: "/", label: "Home" },
+              { to: "/products", label: "Products" },
+            ].map(({ to, label }) => (
+              <li key={to}>
+                <Link to={to} className={`nav-link ${location.pathname === to ? "active" : ""}`}>
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
 
-        {/* Cart with badge */}
-        <Link to="/cart" style={{ ...linkStyle("/cart"), position: "relative" }}>
-          Cart
-          {cartCount > 0 && (
-            <span style={{
-              position: "absolute", top: "-8px", right: "-14px",
-              background: "#e94560", color: "white",
-              borderRadius: "50%", width: "18px", height: "18px",
-              fontSize: "11px", fontWeight: "800",
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}>
-              {cartCount}
-            </span>
-          )}
-        </Link>
-
-        {/* Auth */}
-        {isLoggedIn ? (
-          <button onClick={handleLogout} style={{
-            padding: "8px 20px",
-            background: "linear-gradient(90deg, #e94560, #c0392b)",
-            color: "white", border: "none", borderRadius: "20px",
-            fontSize: "14px", fontWeight: "700", cursor: "pointer",
-            boxShadow: "0 4px 15px rgba(233,69,96,0.3)",
-          }}>
-            Logout
-          </button>
-        ) : (
-          <>
-            <Link to="/login" style={linkStyle("/login")}>Login</Link>
-            <Link to="/register" style={{
-              padding: "8px 20px",
-              background: "linear-gradient(90deg, #e94560, #c0392b)",
-              color: "white", borderRadius: "20px",
-              fontSize: "14px", fontWeight: "700", textDecoration: "none",
-              boxShadow: "0 4px 15px rgba(233,69,96,0.3)",
-            }}>
-              Register
+          <div className="nav-right">
+            <Link to="/cart" className="nav-cart">
+              🛒
+              {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
-          </>
-        )}
-      </div>
-    </nav>
+
+            {isAuthenticated ? (
+              <>
+                <span className="nav-user">{user?.name?.split(" ")[0]}</span>
+                <button className="nav-btn nav-btn-outline" onClick={handleLogout}>Logout</button>
+              </>
+            ) : (
+              <>
+                <button className="nav-btn nav-btn-outline" onClick={() => navigate("/login")}>Login</button>
+                <button className="nav-btn nav-btn-gold" onClick={() => navigate("/register")}>Register</button>
+              </>
+            )}
+          </div>
+        </div>
+      </nav>
+    </>
   );
 }
-
-export default Navbar;

@@ -2,111 +2,249 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 
-function Register() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
+
+  .reg-root {
+    min-height: 100vh;
+    background: #0A0A0A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Montserrat', sans-serif;
+    padding: 100px 24px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .reg-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 30% 50%, rgba(201,168,76,0.05) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(201,168,76,0.03) 0%, transparent 50%);
+  }
+
+  .reg-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.025) 1px, transparent 1px);
+    background-size: 80px 80px;
+  }
+
+  .reg-card {
+    width: 100%;
+    max-width: 520px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .reg-header {
+    margin-bottom: 50px;
+  }
+
+  .reg-eyebrow {
+    font-size: 9px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: #C9A84C;
+    font-weight: 500;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .reg-eyebrow::before {
+    content: '';
+    width: 30px; height: 1px;
+    background: #C9A84C;
+    opacity: 0.5;
+  }
+
+  .reg-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 52px;
+    font-weight: 300;
+    color: #F5F0E8;
+    line-height: 1;
+    margin-bottom: 12px;
+  }
+
+  .reg-title em { font-style: italic; color: #C9A84C; }
+
+  .reg-sub {
+    font-size: 12px;
+    color: #888880;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+
+  .reg-form { display: flex; flex-direction: column; gap: 28px; }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  .form-group { display: flex; flex-direction: column; }
+
+  .form-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 10px;
+  }
+
+  .form-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(245,240,232,0.12);
+    padding: 12px 0;
+    color: #F5F0E8;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+
+  .form-input::placeholder { color: rgba(245,240,232,0.18); }
+  .form-input:focus { border-bottom-color: #C9A84C; }
+
+  .reg-error {
+    padding: 14px 20px;
+    background: rgba(201,68,68,0.08);
+    border-left: 2px solid #C94444;
+    color: #E88080;
+    font-size: 12px;
+    font-weight: 300;
+  }
+
+  .reg-success {
+    padding: 14px 20px;
+    background: rgba(76,201,128,0.08);
+    border-left: 2px solid #4CC980;
+    color: #80E8A8;
+    font-size: 12px;
+    font-weight: 300;
+  }
+
+  .submit-btn {
+    padding: 18px;
+    background: #C9A84C;
+    color: #0A0A0A;
+    border: none;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    background: #E8D5A3;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(201,168,76,0.25);
+  }
+
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .reg-footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 12px;
+    color: #888880;
+    font-weight: 300;
+  }
+
+  .reg-footer a {
+    color: #C9A84C;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  @media (max-width: 600px) {
+    .form-row { grid-template-columns: 1fr; }
+    .reg-title { font-size: 40px; }
+  }
+`;
+
+export default function Register() {
+  const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const handleChange = e => setForm({ ...form, [e.target.name]: e.target.value });
+
   const handleRegister = async () => {
+    if (!form.name || !form.email || !form.password) {
+      setMessage("Ju lutem plotësoni të gjitha fushat!");
+      return;
+    }
     setLoading(true);
+    setMessage("");
     try {
-      await axios.post("http://localhost:5000/api/users/register", { name, email, password });
+      await axios.post("http://localhost:5000/api/users/register", form);
       setSuccess(true);
       setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
-      setMessage(err.response?.data?.message || "Registration failed");
+      setMessage(err.response?.data?.message || "Regjistrimi dështoi!");
     }
     setLoading(false);
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "'Segoe UI', sans-serif", padding: "20px",
-    }}>
-      <div style={{
-        background: "white", borderRadius: "24px", padding: "50px 44px",
-        width: "100%", maxWidth: "420px",
-        boxShadow: "0 30px 80px rgba(0,0,0,0.4)",
-      }}>
-        {success ? (
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: "70px", marginBottom: "16px" }}>🎉</div>
-            <h2 style={{ color: "#1a1a2e", fontWeight: "900" }}>Account Created!</h2>
-            <p style={{ color: "#888" }}>Redirecting to login...</p>
+    <>
+      <style>{styles}</style>
+      <div className="reg-root">
+        <div className="reg-bg" />
+        <div className="reg-grid" />
+
+        <div className="reg-card">
+          <div className="reg-header">
+            <div className="reg-eyebrow">SmartCart Membership</div>
+            <h1 className="reg-title">Join the<br /><em>Elite</em></h1>
+            <p className="reg-sub">Create your account and discover a world of premium shopping</p>
           </div>
-        ) : (
-          <>
-            <div style={{ textAlign: "center", marginBottom: "32px" }}>
-              <div style={{ fontSize: "40px", marginBottom: "8px" }}>🛒</div>
-              <h2 style={{ margin: 0, fontSize: "28px", fontWeight: "900", color: "#1a1a2e" }}>
-                Create Account
-              </h2>
-              <p style={{ color: "#888", marginTop: "8px", fontSize: "15px" }}>
-                Join SmartCart today — it's free!
-              </p>
+
+          {message && <div className="reg-error" style={{ marginBottom: "28px" }}>{message}</div>}
+          {success && <div className="reg-success" style={{ marginBottom: "28px" }}>✓ Account created! Redirecting to login...</div>}
+
+          <div className="reg-form">
+            <div className="form-group">
+              <label className="form-label">Full Name</label>
+              <input name="name" type="text" placeholder="Your full name" value={form.name} onChange={handleChange} className="form-input" />
             </div>
 
-            {message && (
-              <div style={{
-                background: "#fff0f3", border: "1px solid #ffc0cb",
-                borderRadius: "10px", padding: "12px 16px",
-                color: "#e94560", fontSize: "14px", marginBottom: "20px", fontWeight: "600",
-              }}>
-                ❌ {message}
-              </div>
-            )}
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input name="email" type="email" placeholder="your@email.com" value={form.email} onChange={handleChange} className="form-input" />
+            </div>
 
-            {[
-              { label: "FULL NAME", value: name, setter: setName, type: "text", placeholder: "John Doe" },
-              { label: "EMAIL ADDRESS", value: email, setter: setEmail, type: "email", placeholder: "you@example.com" },
-              { label: "PASSWORD", value: password, setter: setPassword, type: "password", placeholder: "••••••••" },
-            ].map((field, i) => (
-              <div key={i} style={{ marginBottom: "16px" }}>
-                <label style={{ fontSize: "13px", fontWeight: "700", color: "#555", display: "block", marginBottom: "6px" }}>
-                  {field.label}
-                </label>
-                <input
-                  type={field.type} placeholder={field.placeholder}
-                  value={field.value} onChange={(e) => field.setter(e.target.value)}
-                  style={{
-                    width: "100%", padding: "14px 16px", borderRadius: "12px",
-                    border: "2px solid #eee", fontSize: "15px", outline: "none",
-                    boxSizing: "border-box", transition: "border 0.2s",
-                  }}
-                  onFocus={e => e.target.style.border = "2px solid #e94560"}
-                  onBlur={e => e.target.style.border = "2px solid #eee"}
-                />
-              </div>
-            ))}
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input name="password" type="password" placeholder="Min. 6 characters" value={form.password} onChange={handleChange} onKeyDown={e => e.key === "Enter" && handleRegister()} className="form-input" />
+            </div>
 
-            <button onClick={handleRegister} disabled={loading} style={{
-              width: "100%", padding: "15px", marginTop: "8px",
-              background: loading ? "#ccc" : "linear-gradient(90deg, #e94560, #c0392b)",
-              color: "white", border: "none", borderRadius: "12px",
-              fontSize: "16px", fontWeight: "800", cursor: loading ? "not-allowed" : "pointer",
-              boxShadow: "0 8px 25px rgba(233,69,96,0.3)",
-            }}>
-              {loading ? "Creating account..." : "Create Account →"}
+            <button className="submit-btn" onClick={handleRegister} disabled={loading || success}>
+              {loading ? "Creating Account..." : "Create Account →"}
             </button>
+          </div>
 
-            <p style={{ textAlign: "center", marginTop: "24px", color: "#888", fontSize: "14px" }}>
-              Already have an account?{" "}
-              <Link to="/login" style={{ color: "#e94560", fontWeight: "700", textDecoration: "none" }}>
-                Sign in
-              </Link>
-            </p>
-          </>
-        )}
+          <p className="reg-footer">
+            Already a member?{" "}
+            <Link to="/login">Sign in</Link>
+          </p>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
-
-export default Register;

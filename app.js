@@ -7,7 +7,7 @@ require("dotenv").config();
 const app = express();
 
 // --- 1. SHTRESA E SIGURISË ---
-app.use(helmet()); // Mbron Header-at
+app.use(helmet());
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -23,10 +23,13 @@ app.use(express.json());
 // --- 3. ROUTES ---
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
-// Shto rrugët e tjera këtu...
+const orderRoutes = require("./routes/orderRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/orders", orderRoutes);
+app.use("/api/reviews", reviewRoutes);
 
 app.get("/", (req, res) => {
   res.send("SmartCart API is running securely...");
@@ -45,16 +48,13 @@ const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   try {
-    // 1. Lidhja me MySQL
     await sequelize.authenticate();
     console.log("✅ MySQL Connected!");
     await sequelize.sync({ alter: true });
 
-    // 2. Lidhja me MongoDB
     await connectMongo();
     console.log("✅ MongoDB Connected!");
 
-    // 3. Nisja e Serverit
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });

@@ -1,121 +1,319 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-function Login() {
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
+
+  .login-root {
+    min-height: 100vh;
+    background: #0A0A0A;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    font-family: 'Montserrat', sans-serif;
+  }
+
+  .login-left {
+    background: linear-gradient(135deg, #111 0%, #0A0A0A 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 60px;
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid rgba(201,168,76,0.15);
+  }
+
+  .login-left-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(201,168,76,0.06) 0%, transparent 70%);
+  }
+
+  .login-left-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .login-brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 48px;
+    font-weight: 300;
+    color: #C9A84C;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+    margin-bottom: 24px;
+  }
+
+  .login-tagline {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 20px;
+    font-weight: 300;
+    font-style: italic;
+    color: rgba(245,240,232,0.4);
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .login-divider {
+    width: 1px;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, rgba(201,168,76,0.4), transparent);
+    margin: 32px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .login-features {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .login-feature {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: rgba(245,240,232,0.5);
+    font-size: 12px;
+    letter-spacing: 1px;
+    font-weight: 300;
+  }
+
+  .login-feature-dot {
+    width: 6px; height: 6px;
+    border: 1px solid #C9A84C;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .login-right {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 60px;
+    background: #0A0A0A;
+  }
+
+  .login-form {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .login-heading {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 42px;
+    font-weight: 300;
+    color: #F5F0E8;
+    margin-bottom: 8px;
+    line-height: 1.1;
+  }
+
+  .login-heading em {
+    font-style: italic;
+    color: #C9A84C;
+  }
+
+  .login-sub {
+    font-size: 12px;
+    color: #888880;
+    margin-bottom: 50px;
+    font-weight: 300;
+    letter-spacing: 1px;
+  }
+
+  .form-group {
+    margin-bottom: 28px;
+  }
+
+  .form-label {
+    display: block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #C9A84C;
+    margin-bottom: 10px;
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 14px 0;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(245,240,232,0.15);
+    color: #F5F0E8;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 14px;
+    font-weight: 300;
+    outline: none;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+  }
+
+  .form-input::placeholder { color: rgba(245,240,232,0.2); }
+  .form-input:focus { border-bottom-color: #C9A84C; }
+
+  .form-error {
+    padding: 14px 20px;
+    background: rgba(201,68,68,0.08);
+    border-left: 2px solid #C94444;
+    color: #E88080;
+    font-size: 12px;
+    margin-bottom: 28px;
+    font-weight: 300;
+    letter-spacing: 0.5px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 16px;
+    background: #C9A84C;
+    color: #0A0A0A;
+    border: none;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+  }
+
+  .submit-btn:hover:not(:disabled) {
+    background: #E8D5A3;
+    transform: translateY(-2px);
+    box-shadow: 0 16px 40px rgba(201,168,76,0.25);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .login-footer-text {
+    text-align: center;
+    margin-top: 36px;
+    font-size: 12px;
+    color: #888880;
+    font-weight: 300;
+  }
+
+  .login-footer-text a {
+    color: #C9A84C;
+    text-decoration: none;
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+
+  .login-footer-text a:hover { text-decoration: underline; }
+
+  @media (max-width: 768px) {
+    .login-root { grid-template-columns: 1fr; }
+    .login-left { display: none; }
+    .login-right { padding: 60px 32px; }
+  }
+`;
+
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   const handleLogin = async () => {
+    if (!email || !password) { setMessage("Ju lutem plotësoni të gjitha fushat!"); return; }
     setLoading(true);
+    setMessage("");
     try {
       const res = await axios.post("http://localhost:5000/api/users/login", { email, password });
-      localStorage.setItem("token", res.data.token);
+      login(res.data.token);
       navigate("/products");
     } catch (err) {
-      setMessage(err.response?.data?.message || "Login failed");
+      setMessage(err.response?.data?.message || "Login dështoi!");
     }
     setLoading(false);
   };
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(135deg, #0f0c29, #302b63, #24243e)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      fontFamily: "'Segoe UI', sans-serif", padding: "20px",
-    }}>
-      {/* Card */}
-      <div style={{
-        background: "white", borderRadius: "24px", padding: "50px 44px",
-        width: "100%", maxWidth: "420px",
-        boxShadow: "0 30px 80px rgba(0,0,0,0.4)",
-      }}>
-        {/* Logo */}
-        <div style={{ textAlign: "center", marginBottom: "32px" }}>
-          <div style={{ fontSize: "40px", marginBottom: "8px" }}>🛒</div>
-          <h2 style={{ margin: 0, fontSize: "28px", fontWeight: "900", color: "#1a1a2e" }}>
-            Welcome Back
-          </h2>
-          <p style={{ color: "#888", marginTop: "8px", fontSize: "15px" }}>
-            Sign in to your SmartCart account
-          </p>
-        </div>
+    <>
+      <style>{styles}</style>
+      <div className="login-root">
 
-        {/* Error */}
-        {message && (
-          <div style={{
-            background: "#fff0f3", border: "1px solid #ffc0cb",
-            borderRadius: "10px", padding: "12px 16px",
-            color: "#e94560", fontSize: "14px", marginBottom: "20px",
-            fontWeight: "600",
-          }}>
-            ❌ {message}
+        {/* LEFT PANEL */}
+        <div className="login-left">
+          <div className="login-left-bg" />
+          <div className="login-left-grid" />
+          <div className="login-brand">SmartCart</div>
+          <div className="login-divider" />
+          <p className="login-tagline">Where luxury meets<br />the art of shopping</p>
+          <div className="login-divider" />
+          <div className="login-features">
+            {["Curated premium products", "Secure & encrypted checkout", "Exclusive member benefits", "24/7 concierge support"].map((f, i) => (
+              <div key={i} className="login-feature">
+                <div className="login-feature-dot" />
+                {f}
+              </div>
+            ))}
           </div>
-        )}
-
-        {/* Inputs */}
-        <div style={{ marginBottom: "16px" }}>
-          <label style={{ fontSize: "13px", fontWeight: "700", color: "#555", display: "block", marginBottom: "6px" }}>
-            EMAIL ADDRESS
-          </label>
-          <input
-            type="email" placeholder="you@example.com" value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            style={{
-              width: "100%", padding: "14px 16px", borderRadius: "12px",
-              border: "2px solid #eee", fontSize: "15px", outline: "none",
-              boxSizing: "border-box", transition: "border 0.2s",
-            }}
-            onFocus={e => e.target.style.border = "2px solid #e94560"}
-            onBlur={e => e.target.style.border = "2px solid #eee"}
-          />
         </div>
 
-        <div style={{ marginBottom: "24px" }}>
-          <label style={{ fontSize: "13px", fontWeight: "700", color: "#555", display: "block", marginBottom: "6px" }}>
-            PASSWORD
-          </label>
-          <input
-            type="password" placeholder="••••••••" value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-            style={{
-              width: "100%", padding: "14px 16px", borderRadius: "12px",
-              border: "2px solid #eee", fontSize: "15px", outline: "none",
-              boxSizing: "border-box", transition: "border 0.2s",
-            }}
-            onFocus={e => e.target.style.border = "2px solid #e94560"}
-            onBlur={e => e.target.style.border = "2px solid #eee"}
-          />
+        {/* RIGHT FORM */}
+        <div className="login-right">
+          <div className="login-form">
+            <h1 className="login-heading">Welcome<br /><em>Back</em></h1>
+            <p className="login-sub">Sign in to your account to continue</p>
+
+            {message && <div className="form-error">{message}</div>}
+
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="form-input"
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Password</label>
+              <input
+                type="password"
+                placeholder="••••••••••"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && handleLogin()}
+                className="form-input"
+              />
+            </div>
+
+            <button className="submit-btn" onClick={handleLogin} disabled={loading}>
+              {loading ? "Signing In..." : "Sign In →"}
+            </button>
+
+            <p className="login-footer-text">
+              New to SmartCart?{" "}
+              <Link to="/register">Create an account</Link>
+            </p>
+          </div>
         </div>
 
-        <button onClick={handleLogin} disabled={loading} style={{
-          width: "100%", padding: "15px",
-          background: loading ? "#ccc" : "linear-gradient(90deg, #e94560, #c0392b)",
-          color: "white", border: "none", borderRadius: "12px",
-          fontSize: "16px", fontWeight: "800", cursor: loading ? "not-allowed" : "pointer",
-          boxShadow: "0 8px 25px rgba(233,69,96,0.3)",
-          transition: "transform 0.2s",
-        }}
-          onMouseOver={e => !loading && (e.target.style.transform = "scale(1.02)")}
-          onMouseOut={e => e.target.style.transform = "scale(1)"}
-        >
-          {loading ? "Signing in..." : "Sign In →"}
-        </button>
-
-        <p style={{ textAlign: "center", marginTop: "24px", color: "#888", fontSize: "14px" }}>
-          Don't have an account?{" "}
-          <Link to="/register" style={{ color: "#e94560", fontWeight: "700", textDecoration: "none" }}>
-            Create one
-          </Link>
-        </p>
       </div>
-    </div>
+    </>
   );
 }
-
-export default Login;
