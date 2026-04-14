@@ -1,29 +1,33 @@
 const jwt = require("jsonwebtoken");
 
+// Middleware: Verifikon JWT Token
 const protect = (req, res, next) => {
   let token;
-
-  // Kontrollon nëse në Header vjen: Authorization: Bearer <token>
-  if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+  if (req.headers.authorization?.startsWith("Bearer")) {
     try {
-      // Merr vetëm kodin e token-it (heq fjalën Bearer)
       token = req.headers.authorization.split(" ")[1];
-
-      // Verifikon token-in me çelësin tonë sekret nga .env
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Shton të dhënat e përdoruesit në kërkesë që t'i përdorim në rrugët e tjera
       req.user = decoded;
-
-      next(); // Kalon te funksioni i radhës
+      return next();
     } catch (error) {
-      return res.status(401).json({ message: "Token i pasaktë, autorizimi dështoi!" });
+      return res.status(401).json({ message: "Token i pasaktë!" });
     }
   }
-
   if (!token) {
-    return res.status(401).json({ message: "Nuk u gjet asnjë Token, aksesi i mohuar!" });
+    return res.status(401).json({ message: "Aksesi i mohuar, nuk ka token!" });
   }
 };
 
-module.exports = { protect };
+// Middleware: Kontrollon Rolin (admin/user)
+const authorizeRoles = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      return res.status(403).json({ 
+        message: `Roli '${req.user?.role}' nuk ka leje për këtë veprim!` 
+      });
+    }
+    next();
+  };
+};
+
+module.exports = { protect, authorizeRoles };

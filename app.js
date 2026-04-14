@@ -2,11 +2,13 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./config/swagger");
 require("dotenv").config();
 
 const app = express();
 
-// --- 1. SHTRESA E SIGURISË ---
+// --- 1. SIGURIA ---
 app.use(helmet());
 
 const apiLimiter = rateLimit({
@@ -20,28 +22,38 @@ app.use("/api/", apiLimiter);
 app.use(cors());
 app.use(express.json());
 
-// --- 3. ROUTES ---
+// --- 3. SWAGGER DOKUMENTACION ---
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// --- 4. ROUTES me Versioning v1 ---
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 
-app.use("/api/users", userRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/reviews", reviewRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/products", productRoutes);
+app.use("/api/v1/orders", orderRoutes);
+app.use("/api/v1/reviews", reviewRoutes);
 
+// --- 5. ROOT ---
 app.get("/", (req, res) => {
-  res.send("SmartCart API is running securely...");
+  res.json({
+    message: "SmartCart API is running!",
+    version: "v1",
+    docs: "http://localhost:5000/api-docs"
+  });
 });
 
-// --- 4. GLOBAL ERROR HANDLER ---
+// --- 6. GLOBAL ERROR HANDLER ---
 app.use((err, req, res, next) => {
   console.error("!!! GABIM:", err.message);
-  res.status(500).json({ message: "Diçka shkoi keq në server!" });
+  res.status(err.status || 500).json({ 
+    message: err.message || "Diçka shkoi keq në server!" 
+  });
 });
 
-// --- 5. DATABASE & SERVER START ---
+// --- 7. DATABASE & SERVER START ---
 const sequelize = require("./config/db");
 const connectMongo = require("./config/mongodb");
 const PORT = process.env.PORT || 5000;
@@ -51,15 +63,14 @@ async function startServer() {
     await sequelize.authenticate();
     console.log("✅ MySQL Connected!");
     await sequelize.sync({ alter: true });
-
     await connectMongo();
     console.log("✅ MongoDB Connected!");
-
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`📚 Swagger Docs: http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
-    console.error("❌ Gabim fatal gjatë nisjes:", error.message);
+    console.error("❌ Gabim fatal:", error.message);
     process.exit(1);
   }
 }
