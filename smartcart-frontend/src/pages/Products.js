@@ -386,7 +386,12 @@ export default function Products() {
   const { addToCart } = useCart();
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/products")
+    axios.get("http://localhost:5000/api/v1/products")
+    .then(res => { 
+      const data = res.data.data || res.data;
+      setProducts(data); 
+      setFiltered(data); 
+    })
       .then(res => { setProducts(res.data); setFiltered(res.data); })
       .catch(() => {})
       .finally(() => setLoading(false));
