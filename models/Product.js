@@ -17,14 +17,11 @@ const Product = sequelize.define(
     price: { 
       type: DataTypes.DECIMAL(10, 2), 
       allowNull: false,
-      validate: {
-        min: 0,
-      }
+      validate: { min: 0 }
     },
     description: { 
       type: DataTypes.TEXT 
     },
-    // ✅ SHTOHET category dhe stock
     category: {
       type: DataTypes.STRING(100),
       allowNull: true,
@@ -33,9 +30,7 @@ const Product = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
       defaultValue: 0,
-      validate: {
-        min: 0,
-      }
+      validate: { min: 0 }
     },
   },
   { 
@@ -44,5 +39,35 @@ const Product = sequelize.define(
     updatedAt: false 
   }
 );
+
+// ✅ POLYMORPHISM - override toString()
+Product.prototype.toString = function() {
+  return `Product[${this.id}]: ${this.name} - €${this.price} (stock: ${this.stock})`;
+};
+
+// ✅ POLYMORPHISM - override validate()
+Product.prototype.validate = function() {
+  if (!this.name || this.name.length < 2) {
+    throw new Error("Emri i produktit duhet të ketë të paktën 2 karaktere!");
+  }
+  if (!this.price || this.price <= 0) {
+    throw new Error("Çmimi duhet të jetë pozitiv!");
+  }
+  if (this.stock < 0) {
+    throw new Error("Stock nuk mund të jetë negativ!");
+  }
+  return true;
+};
+
+// ✅ POLYMORPHISM - override toSafeJSON()
+Product.prototype.toSafeJSON = function() {
+  return {
+    id: this.id,
+    name: this.name,
+    price: this.price,
+    category: this.category,
+    stock: this.stock,
+  };
+};
 
 module.exports = Product;

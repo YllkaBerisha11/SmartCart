@@ -8,7 +8,7 @@ const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 // Cache 5 minuta
 const cache = new NodeCache({ stdTTL: 300 });
 
-// Joi Validation Schema
+// ✅ Schema për CREATE
 const productSchema = Joi.object({
   name: Joi.string().min(2).max(100).required().messages({
     "string.empty": "Emri i produktit është i detyrueshëm!",
@@ -18,8 +18,21 @@ const productSchema = Joi.object({
     "number.base": "Çmimi duhet të jetë numër!",
     "number.positive": "Çmimi duhet të jetë pozitiv!",
   }),
-  description: Joi.string().max(500).optional(),
-  category: Joi.string().optional(),
+  description: Joi.string().max(500).optional().allow(""),
+  category: Joi.string().optional().allow(""),
+  stock: Joi.number().integer().min(0).optional(),
+});
+
+// ✅ Schema për UPDATE - të gjitha fushat optional
+const updateProductSchema = Joi.object({
+  name: Joi.string().min(2).max(100).optional().messages({
+    "string.min": "Emri duhet të ketë së paku 2 karaktere!",
+  }),
+  price: Joi.number().positive().optional().messages({
+    "number.positive": "Çmimi duhet të jetë pozitiv!",
+  }),
+  description: Joi.string().max(500).optional().allow(""),
+  category: Joi.string().optional().allow(""),
   stock: Joi.number().integer().min(0).optional(),
 });
 
@@ -42,7 +55,6 @@ const productSchema = Joi.object({
  */
 router.get("/", async (req, res) => {
   try {
-    // CACHING
     const cachedProducts = cache.get("all_products");
     if (cachedProducts) {
       return res.json({
@@ -58,7 +70,6 @@ router.get("/", async (req, res) => {
     const products = await Product.findAll();
     cache.set("all_products", products);
 
-    // HATEOAS
     res.json({
       source: "database",
       data: products,
@@ -112,7 +123,6 @@ router.get("/:id", async (req, res) => {
 
     cache.set(cacheKey, product);
 
-    // HATEOAS
     res.json({
       source: "database",
       data: product,
@@ -170,11 +180,8 @@ router.post("/", protect, authorizeRoles("admin"), async (req, res) => {
 
   try {
     const product = await Product.create(req.body);
-
-    // Pastro cache
     cache.del("all_products");
 
-    // HATEOAS
     res.status(201).json({
       message: "✅ Produkti u krijua!",
       data: product,
@@ -211,7 +218,8 @@ router.post("/", protect, authorizeRoles("admin"), async (req, res) => {
  *         description: Produkti nuk u gjet
  */
 router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
-  const { error } = productSchema.validate(req.body);
+  // ✅ Përdor updateProductSchema për PUT
+  const { error } = updateProductSchema.validate(req.body);
   if (error) return res.status(400).json({ message: error.details[0].message });
 
   try {
@@ -220,11 +228,9 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
 
     await product.update(req.body);
 
-    // Pastro cache
     cache.del("all_products");
     cache.del(`product_${req.params.id}`);
 
-    // HATEOAS
     res.json({
       message: "✅ Produkti u përditësua!",
       data: product,
@@ -266,11 +272,9 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
 
     await product.destroy();
 
-    // Pastro cache
     cache.del("all_products");
     cache.del(`product_${req.params.id}`);
 
-    // HATEOAS
     res.json({
       message: "✅ Produkti u fshi!",
       _links: {

@@ -11,6 +11,12 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
 
+  // ✅ MODAL STATE
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState(null); // "editUser" | "editProduct" | "addProduct"
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [formData, setFormData] = useState({});
+
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -57,6 +63,70 @@ const AdminDashboard = () => {
       toast.success("✅ Produkti u fshi!");
     } catch (err) {
       toast.error("❌ Gabim gjatë fshirjes!");
+    }
+  };
+
+  // ✅ MODAL FUNCTIONS
+  const openEditProduct = (product) => {
+    setSelectedItem(product);
+    setFormData({
+      name: product.name || product.NAME,
+      price: product.price,
+      description: product.description || "",
+      category: product.category || "",
+      stock: product.stock,
+    });
+    setModalType("editProduct");
+    setShowModal(true);
+  };
+
+  const openAddProduct = () => {
+    setFormData({ name: "", price: "", description: "", category: "", stock: 0 });
+    setModalType("addProduct");
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedItem(null);
+    setFormData({});
+    setModalType(null);
+  };
+
+  const handleSaveProduct = async () => {
+    // ✅ DYNAMIC FORM VALIDATION
+    if (!formData.name || formData.name.length < 2) {
+      toast.error("❌ Emri duhet të ketë të paktën 2 karaktere!");
+      return;
+    }
+    if (!formData.price || formData.price <= 0) {
+      toast.error("❌ Çmimi duhet të jetë pozitiv!");
+      return;
+    }
+
+    try {
+      if (modalType === "editProduct") {
+        await axios.put(
+          `http://localhost:5000/api/v1/products/${selectedItem.id}`,
+          formData,
+          { headers }
+        );
+        setProducts(products.map((p) =>
+          p.id === selectedItem.id ? { ...p, ...formData } : p
+        ));
+        toast.success("✅ Produkti u përditësua!");
+      } else if (modalType === "addProduct") {
+        const res = await axios.post(
+          "http://localhost:5000/api/v1/products",
+          formData,
+          { headers }
+        );
+        setProducts([...products, res.data.data]);
+        toast.success("✅ Produkti u shtua!");
+      }
+      closeModal();
+    } catch (err) {
+      toast.error("❌ Gabim gjatë ruajtjes!");
     }
   };
 
@@ -221,7 +291,19 @@ const AdminDashboard = () => {
         {/* PRODUCTS TAB */}
         {activeTab === "products" && (
           <div>
-            <h2 style={{ fontSize: "18px", fontWeight: "300", color: "#F5F0E8", marginBottom: "20px", fontFamily: "Cormorant Garamond, serif" }}>Menaxhimi i Produkteve</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: "300", color: "#F5F0E8", fontFamily: "Cormorant Garamond, serif", margin: 0 }}>Menaxhimi i Produkteve</h2>
+              {/* ✅ SHTO PRODUKT BUTON */}
+              <button onClick={openAddProduct} style={{
+                padding: "10px 24px", background: "rgba(201,168,76,0.1)",
+                color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)",
+                borderRadius: "2px", cursor: "pointer", fontSize: "10px",
+                letterSpacing: "2px", textTransform: "uppercase",
+                fontFamily: "Montserrat, sans-serif",
+              }}>
+                + Shto Produkt
+              </button>
+            </div>
             <table style={tableStyle}>
               <thead>
                 <tr style={{ background: "#111" }}>
@@ -242,15 +324,27 @@ const AdminDashboard = () => {
                     <td style={tdStyle}>{p.stock}</td>
                     <td style={tdStyle}>{p.category || "—"}</td>
                     <td style={tdStyle}>
-                      <button onClick={() => deleteProduct(p.id)} style={{
-                        padding: "6px 16px", background: "transparent",
-                        color: "#E57373", border: "1px solid rgba(229,115,115,0.3)",
-                        borderRadius: "2px", cursor: "pointer", fontSize: "10px",
-                        letterSpacing: "1px", textTransform: "uppercase",
-                        fontFamily: "Montserrat, sans-serif",
-                      }}>
-                        Fshi
-                      </button>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        {/* ✅ EDIT BUTON — hap modal */}
+                        <button onClick={() => openEditProduct(p)} style={{
+                          padding: "6px 16px", background: "transparent",
+                          color: "#C9A84C", border: "1px solid rgba(201,168,76,0.3)",
+                          borderRadius: "2px", cursor: "pointer", fontSize: "10px",
+                          letterSpacing: "1px", textTransform: "uppercase",
+                          fontFamily: "Montserrat, sans-serif",
+                        }}>
+                          Edit
+                        </button>
+                        <button onClick={() => deleteProduct(p.id)} style={{
+                          padding: "6px 16px", background: "transparent",
+                          color: "#E57373", border: "1px solid rgba(229,115,115,0.3)",
+                          borderRadius: "2px", cursor: "pointer", fontSize: "10px",
+                          letterSpacing: "1px", textTransform: "uppercase",
+                          fontFamily: "Montserrat, sans-serif",
+                        }}>
+                          Fshi
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -259,6 +353,101 @@ const AdminDashboard = () => {
           </div>
         )}
       </div>
+
+      {/* ✅ MODAL */}
+      {showModal && (
+        <div style={{
+          position: "fixed", inset: 0,
+          background: "rgba(0,0,0,0.85)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: "#111",
+            border: "1px solid rgba(201,168,76,0.2)",
+            borderRadius: "4px",
+            padding: "40px",
+            width: "480px",
+            maxWidth: "90vw",
+          }}>
+            <h2 style={{
+              fontSize: "20px", fontWeight: "300",
+              color: "#F5F0E8", marginBottom: "24px",
+              fontFamily: "Cormorant Garamond, serif",
+              borderBottom: "1px solid rgba(201,168,76,0.15)",
+              paddingBottom: "16px"
+            }}>
+              {modalType === "editProduct" ? "✏️ Modifiko Produktin" : "➕ Shto Produkt të Ri"}
+            </h2>
+
+            {/* ✅ DYNAMIC FORM VALIDATION */}
+            {[
+              { label: "Emri", key: "name", type: "text", required: true },
+              { label: "Çmimi (€)", key: "price", type: "number", required: true },
+              { label: "Kategoria", key: "category", type: "text" },
+              { label: "Stock", key: "stock", type: "number" },
+              { label: "Përshkrimi", key: "description", type: "text" },
+            ].map((field) => (
+              <div key={field.key} style={{ marginBottom: "16px" }}>
+                <label style={{
+                  display: "block", fontSize: "10px", letterSpacing: "2px",
+                  color: "#888880", textTransform: "uppercase", marginBottom: "6px"
+                }}>
+                  {field.label} {field.required && <span style={{ color: "#C9A84C" }}>*</span>}
+                </label>
+                <input
+                  type={field.type}
+                  value={formData[field.key] || ""}
+                  onChange={(e) => setFormData({ ...formData, [field.key]: e.target.value })}
+                  style={{
+                    width: "100%", padding: "10px 14px",
+                    background: "rgba(255,255,255,0.04)",
+                    border: !formData[field.key] && field.required
+                      ? "1px solid rgba(229,115,115,0.5)"
+                      : "1px solid rgba(201,168,76,0.18)",
+                    borderRadius: "2px", color: "#F5F0E8",
+                    fontFamily: "Montserrat, sans-serif", fontSize: "13px",
+                    outline: "none", boxSizing: "border-box",
+                  }}
+                />
+                {/* ✅ VALIDATION MESSAGE */}
+                {!formData[field.key] && field.required && (
+                  <div style={{ color: "#E57373", fontSize: "11px", marginTop: "4px" }}>
+                    {field.label} është i detyrueshëm!
+                  </div>
+                )}
+              </div>
+            ))}
+
+            <div style={{ display: "flex", gap: "12px", marginTop: "24px" }}>
+              <button onClick={handleSaveProduct} style={{
+                flex: 1, padding: "14px",
+                background: "rgba(201,168,76,0.15)",
+                color: "#C9A84C",
+                border: "1px solid rgba(201,168,76,0.3)",
+                borderRadius: "2px", cursor: "pointer",
+                fontSize: "10px", letterSpacing: "2px",
+                textTransform: "uppercase",
+                fontFamily: "Montserrat, sans-serif",
+              }}>
+                Ruaj
+              </button>
+              <button onClick={closeModal} style={{
+                flex: 1, padding: "14px",
+                background: "transparent",
+                color: "#888880",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "2px", cursor: "pointer",
+                fontSize: "10px", letterSpacing: "2px",
+                textTransform: "uppercase",
+                fontFamily: "Montserrat, sans-serif",
+              }}>
+                Anulo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

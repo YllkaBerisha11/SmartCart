@@ -4,6 +4,7 @@ const Joi = require("joi");
 const Order = require("../models/Order");
 const OrderItem = require("../models/OrderItem");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+const messageQueue = require("../config/messageQueue");
 
 const orderSchema = Joi.object({
   total_price: Joi.number().positive().required().messages({
@@ -195,6 +196,15 @@ router.post("/", protect, async (req, res) => {
       });
     }
 
+    // --- MESSAGE QUEUE: Publiko event ---
+    messageQueue.publish("order.created", {
+      orderId: order.id,
+      userId: user_id,
+      totalPrice: total_price,
+      itemCount: items.length,
+      timestamp: new Date().toISOString(),
+    });
+
     res.status(201).json({ 
       message: "✅ Order u krijua me sukses!", 
       orderId: order.id 
@@ -245,6 +255,14 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     const order = await Order.findByPk(req.params.id);
     if (!order) return res.status(404).json({ message: "Order nuk u gjet!" });
     await order.update({ status: req.body.status });
+
+    // --- MESSAGE QUEUE: Publiko status update ---
+    messageQueue.publish("order.updated", {
+      orderId: order.id,
+      newStatus: req.body.status,
+      timestamp: new Date().toISOString(),
+    });
+
     res.json({ message: "✅ Order u përditësua!", order });
   } catch (err) {
     console.error("❌ UPDATE ORDER ERROR:", err.message);

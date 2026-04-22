@@ -24,7 +24,6 @@ const User = sequelize.define(
       allowNull: false, 
       field: "PASSWORD" 
     },
-    // ✅ SHTOHET role për autorization
     role: {
       type: DataTypes.ENUM("user", "admin"),
       allowNull: false,
@@ -41,5 +40,31 @@ const User = sequelize.define(
     timestamps: false,
   }
 );
+
+// ✅ POLYMORPHISM - override toString()
+User.prototype.toString = function() {
+  return `User[${this.id}]: ${this.name} (${this.role})`;
+};
+
+// ✅ POLYMORPHISM - override validate()
+User.prototype.validate = function() {
+  if (!this.name || this.name.length < 2) {
+    throw new Error("Emri duhet të ketë të paktën 2 karaktere!");
+  }
+  if (!this.email || !this.email.includes("@")) {
+    throw new Error("Email-i nuk është i vlefshëm!");
+  }
+  return true;
+};
+
+// ✅ POLYMORPHISM - override toSafeJSON()
+User.prototype.toSafeJSON = function() {
+  return {
+    id: this.id,
+    name: this.name,
+    email: this.email,
+    role: this.role,
+  };
+};
 
 module.exports = User;
