@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Montserrat:wght@300;400;500;600&display=swap');
@@ -15,14 +17,11 @@ const styles = `
   }
 
   .navbar.scrolled {
-    background: rgba(10,10,10,0.97);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(201,168,76,0.15);
   }
 
-  .navbar.top {
-    background: transparent;
-  }
+  .navbar.top { background: transparent; }
 
   .nav-inner {
     max-width: 1400px;
@@ -56,7 +55,6 @@ const styles = `
     font-weight: 500;
     letter-spacing: 3px;
     text-transform: uppercase;
-    color: rgba(245,240,232,0.7);
     text-decoration: none;
     transition: color 0.3s;
     position: relative;
@@ -71,19 +69,18 @@ const styles = `
     transition: width 0.3s ease;
   }
 
-  .nav-link:hover, .nav-link.active { color: #C9A84C; }
+  .nav-link:hover, .nav-link.active { color: #C9A84C !important; }
   .nav-link:hover::after, .nav-link.active::after { width: 100%; }
 
   .nav-right {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 16px;
   }
 
   .nav-cart {
     position: relative;
     cursor: pointer;
-    color: rgba(245,240,232,0.7);
     font-size: 18px;
     transition: color 0.3s;
     text-decoration: none;
@@ -108,7 +105,7 @@ const styles = `
   }
 
   .nav-btn {
-    padding: 10px 28px;
+    padding: 8px 20px;
     font-family: 'Montserrat', sans-serif;
     font-size: 10px;
     font-weight: 600;
@@ -117,11 +114,11 @@ const styles = `
     cursor: pointer;
     transition: all 0.3s;
     border: none;
+    border-radius: 2px;
   }
 
   .nav-btn-outline {
     background: transparent;
-    color: rgba(245,240,232,0.8);
     border: 1px solid rgba(201,168,76,0.4);
   }
 
@@ -143,7 +140,6 @@ const styles = `
   .nav-btn-admin {
     background: #9C27B0;
     color: #fff;
-    border: none;
   }
 
   .nav-btn-admin:hover {
@@ -159,6 +155,55 @@ const styles = `
     text-transform: uppercase;
   }
 
+  /* ✅ THEME TOGGLE */
+  .theme-toggle {
+    width: 44px; height: 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(201,168,76,0.3);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    padding: 2px;
+    background: transparent;
+  }
+
+  .theme-toggle-knob {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #C9A84C;
+    transition: transform 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  /* ✅ LANG TOGGLE */
+  .lang-toggle {
+    display: flex;
+    border: 1px solid rgba(201,168,76,0.3);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .lang-btn {
+    padding: 5px 10px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border: none;
+    font-family: 'Montserrat', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .lang-btn.active {
+    background: #C9A84C;
+    color: #0A0A0A;
+  }
+
   @media (max-width: 768px) {
     .nav-inner { padding: 0 24px; }
     .nav-links { display: none; }
@@ -169,8 +214,16 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
   const { cartCount } = useCart();
+  const { isDark, toggleTheme } = useTheme();
+  const { lang, toggleLang, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const navBg = isDark
+    ? scrolled ? "rgba(10,10,10,0.97)" : "transparent"
+    : scrolled ? "rgba(245,245,240,0.97)" : "transparent";
+
+  const linkColor = isDark ? "rgba(245,240,232,0.7)" : "rgba(30,30,30,0.7)";
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 40);
@@ -186,22 +239,18 @@ export default function Navbar() {
   return (
     <>
       <style>{styles}</style>
-      <nav className={`navbar ${scrolled ? "scrolled" : "top"}`}>
+      <nav className={`navbar ${scrolled ? "scrolled" : "top"}`} style={{ background: navBg }}>
         <div className="nav-inner">
           <Link to="/" className="nav-brand">SmartCart</Link>
 
           <ul className="nav-links">
             {[
-              { to: "/", label: "Home" },
-              { to: "/products", label: "Products" },
-              // ✅ Shfaq Admin link vetëm për admin
-              ...(user?.role === "admin" ? [{ to: "/admin", label: "Admin" }] : []),
+              { to: "/", label: t.home },
+              { to: "/products", label: t.products },
+              ...(user?.role === "admin" ? [{ to: "/admin", label: t.admin }] : []),
             ].map(({ to, label }) => (
               <li key={to}>
-                <Link
-                  to={to}
-                  className={`nav-link ${location.pathname === to ? "active" : ""}`}
-                >
+                <Link to={to} className={`nav-link ${location.pathname === to ? "active" : ""}`} style={{ color: linkColor }}>
                   {label}
                 </Link>
               </li>
@@ -209,7 +258,40 @@ export default function Navbar() {
           </ul>
 
           <div className="nav-right">
-            <Link to="/cart" className="nav-cart">
+
+            {/* ✅ LANGUAGE TOGGLE */}
+            <div className="lang-toggle">
+              <button
+                className={`lang-btn ${lang === "en" ? "active" : ""}`}
+                onClick={() => lang !== "en" && toggleLang()}
+                style={{
+                  background: lang === "en" ? "#C9A84C" : "transparent",
+                  color: lang === "en" ? "#0A0A0A" : isDark ? "rgba(245,240,232,0.5)" : "rgba(30,30,30,0.5)"
+                }}
+              >
+                EN
+              </button>
+              <button
+                className={`lang-btn ${lang === "al" ? "active" : ""}`}
+                onClick={() => lang !== "al" && toggleLang()}
+                style={{
+                  background: lang === "al" ? "#C9A84C" : "transparent",
+                  color: lang === "al" ? "#0A0A0A" : isDark ? "rgba(245,240,232,0.5)" : "rgba(30,30,30,0.5)"
+                }}
+              >
+                AL
+              </button>
+            </div>
+
+            {/* ✅ DARK/LIGHT TOGGLE */}
+            <button className="theme-toggle" onClick={toggleTheme} title={isDark ? "Light Mode" : "Dark Mode"}>
+              <div className="theme-toggle-knob" style={{ transform: isDark ? "translateX(0)" : "translateX(20px)" }}>
+                {isDark ? "🌙" : "☀️"}
+              </div>
+            </button>
+
+            {/* CART */}
+            <Link to="/cart" className="nav-cart" style={{ color: isDark ? "rgba(245,240,232,0.7)" : "rgba(30,30,30,0.7)" }}>
               🛒
               {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
             </Link>
@@ -217,26 +299,30 @@ export default function Navbar() {
             {isAuthenticated ? (
               <>
                 <span className="nav-user">{user?.name?.split(" ")[0]}</span>
-                {/* ✅ Shfaq Admin Dashboard buton vetëm për admin */}
                 {user?.role === "admin" && (
-                  <button
-                    className="nav-btn nav-btn-admin"
-                    onClick={() => navigate("/admin")}
-                  >
-                    🛡️ Admin
+                  <button className="nav-btn nav-btn-admin" onClick={() => navigate("/admin")}>
+                    🛡️ {t.admin}
                   </button>
                 )}
-                <button className="nav-btn nav-btn-outline" onClick={handleLogout}>
-                  Logout
+                <button
+                  className="nav-btn nav-btn-outline"
+                  onClick={handleLogout}
+                  style={{ color: isDark ? "rgba(245,240,232,0.8)" : "rgba(30,30,30,0.8)" }}
+                >
+                  {t.logout}
                 </button>
               </>
             ) : (
               <>
-                <button className="nav-btn nav-btn-outline" onClick={() => navigate("/login")}>
-                  Login
+                <button
+                  className="nav-btn nav-btn-outline"
+                  onClick={() => navigate("/login")}
+                  style={{ color: isDark ? "rgba(245,240,232,0.8)" : "rgba(30,30,30,0.8)" }}
+                >
+                  {t.login}
                 </button>
                 <button className="nav-btn nav-btn-gold" onClick={() => navigate("/register")}>
-                  Register
+                  {t.register}
                 </button>
               </>
             )}

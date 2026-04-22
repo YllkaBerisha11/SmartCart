@@ -2,365 +2,13 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-
-const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
-
-  :root {
-    --gold: #C9A84C;
-    --gold-light: #E8D5A3;
-    --black: #0A0A0A;
-    --dark: #111111;
-    --dark2: #1A1A1A;
-    --white: #F5F0E8;
-    --gray: #888880;
-  }
-
-  .products-root {
-    min-height: 100vh;
-    background: var(--black);
-    font-family: 'Montserrat', sans-serif;
-    color: var(--white);
-    padding-top: 80px;
-  }
-
-  .products-hero {
-    padding: 80px 60px 60px;
-    background: var(--dark);
-    border-bottom: 1px solid rgba(201,168,76,0.12);
-    position: relative;
-    overflow: hidden;
-  }
-
-  .products-hero-bg {
-    position: absolute; inset: 0;
-    background: radial-gradient(ellipse at 80% 50%, rgba(201,168,76,0.05) 0%, transparent 60%);
-  }
-
-  .products-hero-label {
-    font-size: 10px;
-    letter-spacing: 5px;
-    text-transform: uppercase;
-    color: var(--gold);
-    font-weight: 500;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    position: relative; z-index: 1;
-  }
-
-  .products-hero-label::before {
-    content: '';
-    width: 30px; height: 1px;
-    background: var(--gold); opacity: 0.5;
-  }
-
-  .products-hero-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: clamp(40px, 6vw, 72px);
-    font-weight: 300;
-    color: var(--white);
-    line-height: 1;
-    position: relative; z-index: 1;
-  }
-
-  .products-hero-title em { font-style: italic; color: var(--gold); }
-
-  .products-controls {
-    padding: 28px 60px;
-    background: var(--dark);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
-    border-bottom: 1px solid rgba(201,168,76,0.08);
-    position: sticky;
-    top: 80px;
-    z-index: 10;
-    backdrop-filter: blur(10px);
-  }
-
-  .search-wrap {
-    position: relative;
-    flex: 1;
-    max-width: 360px;
-  }
-
-  .search-input {
-    width: 100%;
-    padding: 11px 16px 11px 40px;
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(201,168,76,0.18);
-    border-radius: 2px;
-    color: var(--white);
-    font-family: 'Montserrat', sans-serif;
-    font-size: 12px;
-    font-weight: 300;
-    outline: none;
-    transition: border-color 0.3s;
-    box-sizing: border-box;
-  }
-
-  .search-input::placeholder { color: rgba(245,240,232,0.22); }
-  .search-input:focus { border-color: rgba(201,168,76,0.5); }
-
-  .search-icon {
-    position: absolute;
-    left: 13px; top: 50%;
-    transform: translateY(-50%);
-    color: var(--gold);
-    font-size: 14px;
-    opacity: 0.5;
-  }
-
-  .products-count {
-    font-size: 11px;
-    letter-spacing: 2px;
-    color: var(--gray);
-    font-weight: 300;
-    white-space: nowrap;
-  }
-
-  .products-count span { color: var(--gold); font-weight: 500; }
-
-  .products-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 28px;
-    padding: 52px 60px;
-    max-width: 1400px;
-    margin: 0 auto;
-    box-sizing: border-box;
-  }
-
-  .product-card {
-    background: var(--dark);
-    border-radius: 6px;
-    border: 1px solid rgba(201,168,76,0.08);
-    overflow: hidden;
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex;
-    flex-direction: column;
-    cursor: pointer;
-  }
-
-  .product-card:hover {
-    border-color: rgba(201,168,76,0.3);
-    transform: translateY(-6px);
-    box-shadow: 0 32px 64px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,168,76,0.1);
-  }
-
-  .product-image {
-    height: 220px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    overflow: hidden;
-    transition: filter 0.4s ease;
-  }
-
-  .product-initial {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 80px;
-    font-weight: 300;
-    color: rgba(255,255,255,0.08);
-    line-height: 1;
-    transition: transform 0.5s ease, color 0.4s ease;
-    user-select: none;
-  }
-
-  .product-card:hover .product-initial {
-    transform: scale(1.1);
-    color: rgba(255,255,255,0.12);
-  }
-
-  .product-overlay {
-    position: absolute; inset: 0;
-    background: rgba(0,0,0,0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.35s ease;
-  }
-
-  .product-card:hover .product-overlay { opacity: 1; }
-
-  .overlay-btn {
-    padding: 13px 32px;
-    background: var(--gold);
-    color: var(--black);
-    border: none;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    cursor: pointer;
-    border-radius: 2px;
-    transform: translateY(12px);
-    transition: all 0.35s ease;
-  }
-
-  .product-card:hover .overlay-btn { transform: translateY(0); }
-  .overlay-btn:hover { background: var(--gold-light); }
-
-  .product-info {
-    padding: 24px 24px 20px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .product-category {
-    font-size: 9px;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--gold);
-    font-weight: 500;
-    opacity: 0.7;
-  }
-
-  .product-name {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 22px;
-    font-weight: 400;
-    color: var(--white);
-    line-height: 1.2;
-  }
-
-  .product-desc {
-    font-size: 12px;
-    color: var(--gray);
-    font-weight: 300;
-    line-height: 1.7;
-    flex: 1;
-  }
-
-  .product-footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-top: 16px;
-    border-top: 1px solid rgba(201,168,76,0.08);
-    margin-top: 8px;
-  }
-
-  .product-price {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 30px;
-    font-weight: 300;
-    color: var(--gold);
-    line-height: 1;
-  }
-
-  .add-btn {
-    padding: 9px 18px;
-    background: transparent;
-    border: 1px solid rgba(201,168,76,0.35);
-    border-radius: 2px;
-    color: var(--gold);
-    font-family: 'Montserrat', sans-serif;
-    font-size: 9px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: all 0.3s;
-  }
-
-  .add-btn:hover, .add-btn.added {
-    background: var(--gold);
-    color: var(--black);
-    border-color: var(--gold);
-  }
-
-  .loading-wrap {
-    min-height: 60vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-  }
-
-  .loading-ring {
-    width: 44px; height: 44px;
-    border: 1px solid rgba(201,168,76,0.15);
-    border-top-color: var(--gold);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .loading-text {
-    font-size: 10px;
-    letter-spacing: 5px;
-    color: var(--gray);
-    text-transform: uppercase;
-  }
-
-  .empty-wrap {
-    min-height: 50vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-  }
-
-  .empty-text {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 28px;
-    font-weight: 300;
-    color: var(--gray);
-  }
-
-  .toast {
-    position: fixed;
-    bottom: 32px; right: 32px;
-    background: var(--dark2);
-    border: 1px solid rgba(201,168,76,0.25);
-    border-left: 3px solid var(--gold);
-    padding: 14px 22px;
-    font-size: 12px;
-    color: var(--white);
-    font-weight: 300;
-    z-index: 9999;
-    border-radius: 3px;
-    animation: toastIn 0.3s ease;
-    letter-spacing: 0.5px;
-    box-shadow: 0 16px 40px rgba(0,0,0,0.4);
-  }
-
-  @keyframes toastIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @media (max-width: 900px) {
-    .products-hero { padding: 60px 24px 40px; }
-    .products-controls { padding: 20px 24px; top: 80px; }
-    .products-grid { padding: 32px 24px; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  }
-`;
+import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 
 const cardColors = [
-  "#1C1008",
-  "#081C10",
-  "#08101C",
-  "#1C0808",
-  "#0F0C18",
-  "#181208",
-  "#0C1818",
-  "#180C18",
-  "#101810",
-  "#181010",
+  "#1C1008", "#081C10", "#08101C", "#1C0808",
+  "#0F0C18", "#181208", "#0C1818", "#180C18",
+  "#101810", "#181010",
 ];
 
 const getProductCategory = (name) => {
@@ -373,6 +21,8 @@ const getProductCategory = (name) => {
   if (n.includes("perfume") || n.includes("fragrance")) return "Lifestyle";
   if (n.includes("backpack") || n.includes("bag")) return "Accessories";
   if (n.includes("coffee")) return "Home";
+  if (n.includes("laptop") || n.includes("phone") || n.includes("iphone") || n.includes("samsung")) return "Electronics";
+  if (n.includes("keyboard") || n.includes("mouse")) return "Accessories";
   return "Premium";
 };
 
@@ -384,15 +34,27 @@ export default function Products() {
   const [toast, setToast] = useState("");
   const [addedIds, setAddedIds] = useState([]);
   const { addToCart } = useCart();
+  const navigate = useNavigate();
+  const { isDark } = useTheme();
+  const { t } = useLanguage();
+
+  // ✅ THEME COLORS
+  const bg = isDark ? "#0A0A0A" : "#F5F5F0";
+  const heroBg = isDark ? "#111111" : "#EBEBЕ6";
+  const cardBg = isDark ? "#111111" : "#FFFFFF";
+  const textColor = isDark ? "#F5F0E8" : "#1A1A1A";
+  const grayColor = isDark ? "#888880" : "#666660";
+  const borderColor = isDark ? "rgba(201,168,76,0.08)" : "rgba(201,168,76,0.2)";
+  const searchBg = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.04)";
+  const searchBorder = isDark ? "rgba(201,168,76,0.18)" : "rgba(201,168,76,0.3)";
 
   useEffect(() => {
     axios.get("http://localhost:5000/api/v1/products")
-    .then(res => { 
-      const data = res.data.data || res.data;
-      setProducts(data); 
-      setFiltered(data); 
-    })
-      .then(res => { setProducts(res.data); setFiltered(res.data); })
+      .then(res => {
+        const data = res.data.data || res.data;
+        setProducts(data);
+        setFiltered(data);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -405,87 +67,226 @@ export default function Products() {
     ));
   }, [search, products]);
 
-  const handleAddToCart = (product) => {
+  const handleAddToCart = (e, product) => {
+    e.stopPropagation();
     addToCart({ id: product.id, name: product.name, price: parseFloat(product.price) });
     setAddedIds(prev => [...prev, product.id]);
-    setToast(`${product.name} added to cart`);
+    setToast(`${product.name} ${t.added}`);
     setTimeout(() => setToast(""), 2500);
     setTimeout(() => setAddedIds(prev => prev.filter(id => id !== product.id)), 2000);
   };
 
   return (
-    <>
-      <style>{styles}</style>
-      <div className="products-root">
+    <div style={{ minHeight: "100vh", background: bg, fontFamily: "Montserrat, sans-serif", color: textColor, paddingTop: "80px", transition: "all 0.3s" }}>
 
-        <div className="products-hero">
-          <div className="products-hero-bg" />
-          <div className="products-hero-label">SmartCart Collection</div>
-          <h1 className="products-hero-title">Our <em>Premium</em><br />Products</h1>
+      {/* HERO */}
+      <div style={{
+        padding: "80px 60px 60px",
+        background: heroBg,
+        borderBottom: `1px solid ${borderColor}`,
+        position: "relative", overflow: "hidden"
+      }}>
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "radial-gradient(ellipse at 80% 50%, rgba(201,168,76,0.05) 0%, transparent 60%)"
+        }} />
+        <div style={{
+          fontSize: "10px", letterSpacing: "5px", textTransform: "uppercase",
+          color: "#C9A84C", fontWeight: "500", marginBottom: "16px",
+          display: "flex", alignItems: "center", gap: "12px", position: "relative", zIndex: 1
+        }}>
+          <span style={{ width: "30px", height: "1px", background: "#C9A84C", opacity: 0.5, display: "inline-block" }} />
+          {t.collection}
         </div>
+        <h1 style={{
+          fontFamily: "Cormorant Garamond, serif",
+          fontSize: "clamp(40px, 6vw, 72px)", fontWeight: "300",
+          color: textColor, lineHeight: "1", position: "relative", zIndex: 1, margin: 0
+        }}>
+          {t.ourPremium} <em style={{ fontStyle: "italic", color: "#C9A84C" }}>{t.premium}</em><br />{t.productsTitle}
+        </h1>
+      </div>
 
-        <div className="products-controls">
-          <div className="search-wrap">
-            <span className="search-icon">⌕</span>
-            <input
-              className="search-input"
-              placeholder="Search products..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-            />
-          </div>
-          <div className="products-count">
-            Showing <span>{filtered.length}</span> {filtered.length === 1 ? "product" : "products"}
+      {/* CONTROLS */}
+      <div style={{
+        padding: "28px 60px", background: heroBg,
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: "20px", flexWrap: "wrap",
+        borderBottom: `1px solid ${borderColor}`,
+        position: "sticky", top: "80px", zIndex: 10,
+        backdropFilter: "blur(10px)"
+      }}>
+        <div style={{ position: "relative", flex: 1, maxWidth: "360px" }}>
+          <span style={{
+            position: "absolute", left: "13px", top: "50%",
+            transform: "translateY(-50%)", color: "#C9A84C",
+            fontSize: "14px", opacity: 0.5
+          }}>⌕</span>
+          <input
+            style={{
+              width: "100%", padding: "11px 16px 11px 40px",
+              background: searchBg, border: `1px solid ${searchBorder}`,
+              borderRadius: "2px", color: textColor,
+              fontFamily: "Montserrat, sans-serif", fontSize: "12px",
+              fontWeight: "300", outline: "none", boxSizing: "border-box"
+            }}
+            placeholder={t.search}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div style={{ fontSize: "11px", letterSpacing: "2px", color: grayColor, fontWeight: "300" }}>
+          {t.showing} <span style={{ color: "#C9A84C", fontWeight: "500" }}>{filtered.length}</span> {filtered.length === 1 ? t.product : t.products_plural}
+        </div>
+      </div>
+
+      {/* CONTENT */}
+      {loading ? (
+        <div style={{ minHeight: "60vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: "20px" }}>
+          <div style={{
+            width: "44px", height: "44px",
+            border: "1px solid rgba(201,168,76,0.15)",
+            borderTop: "1px solid #C9A84C",
+            borderRadius: "50%", animation: "spin 1s linear infinite"
+          }} />
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          <div style={{ fontSize: "10px", letterSpacing: "5px", color: grayColor, textTransform: "uppercase" }}>
+            {t.loading}
           </div>
         </div>
-
-        {loading ? (
-          <div className="loading-wrap">
-            <div className="loading-ring" />
-            <div className="loading-text">Loading Collection</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ minHeight: "50vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "28px", fontWeight: "300", color: grayColor }}>
+            {t.noProducts}
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="empty-wrap">
-            <div className="empty-text">No products found</div>
-          </div>
-        ) : (
-          <div className="products-grid">
-            {filtered.map((product, i) => (
-              <div key={product.id} className="product-card">
-                <div
-                  className="product-image"
-                  style={{ backgroundColor: cardColors[i % cardColors.length] }}
-                >
-                  <div className="product-initial">
-                    {product.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="product-overlay">
-                    <button className="overlay-btn" onClick={() => handleAddToCart(product)}>
-                      Add to Cart
-                    </button>
-                  </div>
+        </div>
+      ) : (
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: "28px", padding: "52px 60px",
+          maxWidth: "1400px", margin: "0 auto", boxSizing: "border-box"
+        }}>
+          {filtered.map((product, i) => (
+            <div
+              key={product.id}
+              onClick={() => navigate(`/products/${product.id}`)}
+              style={{
+                background: cardBg,
+                borderRadius: "6px",
+                border: `1px solid ${borderColor}`,
+                overflow: "hidden",
+                transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                display: "flex", flexDirection: "column",
+                cursor: "pointer",
+                boxShadow: isDark ? "none" : "0 2px 20px rgba(0,0,0,0.08)"
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = "translateY(-6px)";
+                e.currentTarget.style.borderColor = "rgba(201,168,76,0.3)";
+                e.currentTarget.style.boxShadow = "0 32px 64px rgba(0,0,0,0.15)";
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.borderColor = borderColor;
+                e.currentTarget.style.boxShadow = isDark ? "none" : "0 2px 20px rgba(0,0,0,0.08)";
+              }}
+            >
+              {/* IMAGE */}
+              <div style={{
+                height: "220px", display: "flex",
+                alignItems: "center", justifyContent: "center",
+                position: "relative", overflow: "hidden",
+                backgroundColor: cardColors[i % cardColors.length]
+              }}>
+                <div style={{
+                  fontFamily: "Cormorant Garamond, serif",
+                  fontSize: "80px", fontWeight: "300",
+                  color: "rgba(255,255,255,0.08)",
+                  lineHeight: "1", userSelect: "none"
+                }}>
+                  {product.name.charAt(0).toUpperCase()}
                 </div>
-                <div className="product-info">
-                  <div className="product-category">{getProductCategory(product.name)}</div>
-                  <h3 className="product-name">{product.name}</h3>
-                  <p className="product-desc">{product.description || "Premium quality product"}</p>
-                  <div className="product-footer">
-                    <div className="product-price">${parseFloat(product.price).toFixed(2)}</div>
-                    <button
-                      className={`add-btn ${addedIds.includes(product.id) ? "added" : ""}`}
-                      onClick={() => handleAddToCart(product)}
-                    >
-                      {addedIds.includes(product.id) ? "✓ Added" : "+ Cart"}
-                    </button>
-                  </div>
+
+                {/* OVERLAY */}
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: "rgba(0,0,0,0.35)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  opacity: 0, transition: "opacity 0.35s ease"
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+                  onMouseLeave={e => e.currentTarget.style.opacity = "0"}
+                >
+                  <button
+                    onClick={e => handleAddToCart(e, product)}
+                    style={{
+                      padding: "13px 32px", background: "#C9A84C",
+                      color: "#0A0A0A", border: "none",
+                      fontFamily: "Montserrat, sans-serif",
+                      fontSize: "9px", fontWeight: "700",
+                      letterSpacing: "3px", textTransform: "uppercase",
+                      cursor: "pointer", borderRadius: "2px"
+                    }}
+                  >
+                    {t.addToCart}
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
 
-        {toast && <div className="toast">✦ {toast}</div>}
-      </div>
-    </>
+              {/* INFO */}
+              <div style={{ padding: "24px 24px 20px", flex: 1, display: "flex", flexDirection: "column", gap: "8px" }}>
+                <div style={{ fontSize: "9px", letterSpacing: "3px", textTransform: "uppercase", color: "#C9A84C", fontWeight: "500", opacity: 0.7 }}>
+                  {product.category || getProductCategory(product.name)}
+                </div>
+                <h3 style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "22px", fontWeight: "400", color: textColor, lineHeight: "1.2", margin: 0 }}>
+                  {product.name}
+                </h3>
+                <p style={{ fontSize: "12px", color: grayColor, fontWeight: "300", lineHeight: "1.7", flex: 1, margin: 0 }}>
+                  {product.description || "Premium quality product"}
+                </p>
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  paddingTop: "16px", borderTop: `1px solid ${borderColor}`, marginTop: "8px"
+                }}>
+                  <div style={{ fontFamily: "Cormorant Garamond, serif", fontSize: "30px", fontWeight: "300", color: "#C9A84C", lineHeight: "1" }}>
+                    €{parseFloat(product.price).toFixed(2)}
+                  </div>
+                  <button
+                    onClick={e => handleAddToCart(e, product)}
+                    style={{
+                      padding: "9px 18px", background: addedIds.includes(product.id) ? "#C9A84C" : "transparent",
+                      border: "1px solid rgba(201,168,76,0.35)", borderRadius: "2px",
+                      color: addedIds.includes(product.id) ? "#0A0A0A" : "#C9A84C",
+                      fontFamily: "Montserrat, sans-serif", fontSize: "9px",
+                      fontWeight: "600", letterSpacing: "2px", textTransform: "uppercase",
+                      cursor: "pointer", transition: "all 0.3s"
+                    }}
+                  >
+                    {addedIds.includes(product.id) ? `✓ ${t.added}` : `+ ${t.cart}`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* TOAST */}
+      {toast && (
+        <div style={{
+          position: "fixed", bottom: "32px", right: "32px",
+          background: isDark ? "#1A1A1A" : "#FFFFFF",
+          border: `1px solid rgba(201,168,76,0.25)`,
+          borderLeft: "3px solid #C9A84C",
+          padding: "14px 22px", fontSize: "12px",
+          color: textColor, fontWeight: "300",
+          zIndex: 9999, borderRadius: "3px",
+          boxShadow: "0 16px 40px rgba(0,0,0,0.2)"
+        }}>
+          ✦ {toast}
+        </div>
+      )}
+    </div>
   );
 }
