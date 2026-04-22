@@ -5,7 +5,6 @@ const Order = require("../models/Order");
 const OrderItem = require("../models/OrderItem");
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 
-// --- SKEMAT E VALIDIMIT ---
 const orderSchema = Joi.object({
   total_price: Joi.number().positive().required().messages({
     "number.base": "Çmimi total duhet të jetë numër!",
@@ -66,6 +65,7 @@ router.get("/", protect, authorizeRoles("admin"), async (req, res) => {
     const orders = await Order.findAll({ include: OrderItem });
     res.json(orders);
   } catch (err) {
+    console.error("❌ GET ORDERS ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -92,6 +92,7 @@ router.get("/my", protect, async (req, res) => {
     });
     res.json(orders);
   } catch (err) {
+    console.error("❌ GET MY ORDERS ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -120,14 +121,12 @@ router.get("/:id", protect, async (req, res) => {
   try {
     const order = await Order.findByPk(req.params.id, { include: OrderItem });
     if (!order) return res.status(404).json({ message: "Order nuk u gjet!" });
-
-    // Përdoruesi mund të shohë vetëm orders e veta, admin të gjitha
     if (req.user.role !== "admin" && order.user_id !== req.user.id) {
       return res.status(403).json({ message: "Nuk ke leje ta shohësh këtë order!" });
     }
-
     res.json(order);
   } catch (err) {
+    console.error("❌ GET ORDER ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -201,6 +200,7 @@ router.post("/", protect, async (req, res) => {
       orderId: order.id 
     });
   } catch (err) {
+    console.error("❌ ORDER ERROR:", err.message, err.stack);
     res.status(500).json({ message: err.message });
   }
 });
@@ -247,6 +247,7 @@ router.put("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     await order.update({ status: req.body.status });
     res.json({ message: "✅ Order u përditësua!", order });
   } catch (err) {
+    console.error("❌ UPDATE ORDER ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
@@ -281,6 +282,7 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
     await order.destroy();
     res.json({ message: "✅ Order u fshi!" });
   } catch (err) {
+    console.error("❌ DELETE ORDER ERROR:", err.message);
     res.status(500).json({ message: err.message });
   }
 });
