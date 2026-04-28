@@ -3,58 +3,30 @@ const sequelize = require("../config/db");
 const User = require("./User");
 
 const Order = sequelize.define("Order", {
-  id: { 
-    type: DataTypes.INTEGER, 
-    primaryKey: true, 
-    autoIncrement: true 
-  },
-  user_id: { 
-    type: DataTypes.INTEGER, 
-    allowNull: false 
-  },
-  total_price: { 
-    type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
-  },
+  id:          { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id:     { type: DataTypes.INTEGER, allowNull: false },
+  total_price: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
   status: {
-    type: DataTypes.ENUM("pending", "processing", "shipped", "delivered", "cancelled"),
+    type: DataTypes.ENUM("pending","processing","shipped","delivered","cancelled","exchange","return"),
     allowNull: false,
     defaultValue: "pending"
   },
-}, { 
-  timestamps: true, 
-  createdAt: "created_at", 
-  updatedAt: false 
+  payment_method: {
+    type: DataTypes.ENUM("cash","card","paypal"),
+    allowNull: true,
+    defaultValue: "cash"
+  },
+  admin_note: { type: DataTypes.TEXT, allowNull: true, defaultValue: null },
+}, {
+  timestamps: true,
+  createdAt: "created_at",
+  updatedAt: false
 });
 
-// ✅ POLYMORPHISM - override toString()
-Order.prototype.toString = function() {
-  return `Order[${this.id}]: €${this.total_price} - Status: ${this.status}`;
-};
-
-// ✅ POLYMORPHISM - override validate()
-Order.prototype.validate = function() {
-  if (!this.total_price || this.total_price <= 0) {
-    throw new Error("Çmimi total duhet të jetë pozitiv!");
-  }
-  const validStatuses = ["pending", "processing", "shipped", "delivered", "cancelled"];
-  if (!validStatuses.includes(this.status)) {
-    throw new Error("Statusi i order-it nuk është i vlefshëm!");
-  }
-  return true;
-};
-
-// ✅ POLYMORPHISM - override toSafeJSON()
-Order.prototype.toSafeJSON = function() {
-  return {
-    id: this.id,
-    user_id: this.user_id,
-    total_price: this.total_price,
-    status: this.status,
-  };
-};
+Order.prototype.toString    = function() { return `Order[${this.id}]: €${this.total_price} (${this.status})`; };
+Order.prototype.toSafeJSON  = function() { return { id: this.id, user_id: this.user_id, total_price: this.total_price, status: this.status, payment_method: this.payment_method }; };
 
 Order.belongsTo(User, { foreignKey: "user_id", onDelete: "CASCADE" });
-User.hasMany(Order, { foreignKey: "user_id" });
+User.hasMany(Order,   { foreignKey: "user_id" });
 
 module.exports = Order;
