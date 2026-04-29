@@ -1,0 +1,12 @@
+apiVersion: v2
+name: smartcart
+description: SmartCart Backend Helm Chart
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - smartcart
+  - ecommerce
+  - nodejs
+maintainers:
+  - name: SmartCart Team

@@ -1,0 +1,38 @@
+replicaCount: 3
+
+image:
+  repository: smartcart-backend
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 5000
+
+ingress:
+  enabled: true
+  host: smartcart.local
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+env:
+  NODE_ENV: production
+  PORT: "5000"
+
+secrets:
+  jwtSecret: "your-jwt-secret"
+  jwtRefreshSecret: "your-refresh-secret"

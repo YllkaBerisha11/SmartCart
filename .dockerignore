@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+coverage
+logs
+.git
+.gitignore
+*.md
+__tests__
+cypress
+locustfile.py
+docker-compose*.yml
+monitoring
