@@ -14,10 +14,13 @@ const app = express();
 // --- 1. SECURITY ---
 app.use((req, res, next) => { res.setHeader("X-API-Gateway", "SmartCart-Express-Gateway-v1"); next(); });
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { message: "Keni bërë shumë kërkesa!" } }));
+
+// 🛑 NDRYSHIMI KËTU: E bëjmë comment për testimin me Locust që të mos bllokohesh
+// app.use(rateLimit({ windowMs: 15 * 60 * 1000, max: 100, message: { message: "Keni bërë shumë kërkesa!" } }));
 
 // --- 2. MIDDLEWARES ---
-app.use(cors({ origin: ["http://localhost:3000", "http://localhost:3001"], credentials: true }));
+// Shtova "*" te origin për të lejuar Locust-in të bëjë thirrje pa probleme
+app.use(cors({ origin: "*", credentials: true })); 
 app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(morgan("combined", { stream: { write: (msg) => logger.info(msg.trim()) } }));
@@ -42,10 +45,9 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || "Diçka shkoi keq!" });
 });
 
-// ✅ Export për testing
 module.exports = app;
 
-// --- 7. START (vetëm direkt) ---
+// --- 7. START ---
 if (require.main === module) {
   const Consul         = require("consul");
   const CircuitBreaker = require("opossum");
@@ -86,8 +88,6 @@ if (require.main === module) {
       const PORT = process.env.PORT || 5000;
       app.listen(PORT, () => {
         console.log(`\n🚀 Server running on port ${PORT}`);
-        console.log(`📚 Swagger Docs: http://localhost:${PORT}/api-docs`);
-        console.log(`🔍 Service Discovery: http://localhost:${PORT}/api/services`);
       });
 
       startGrpcServer();
