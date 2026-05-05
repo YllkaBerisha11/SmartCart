@@ -64,7 +64,31 @@ const sendWelcomeEmail = async ({ to, name }) => {
 };
 
 // ══════════════════════════════════════════════════
-// 2. Email reset password
+// 2. Email verifikimi i llogarisë
+// ══════════════════════════════════════════════════
+const sendVerificationEmail = async ({ to, name, verificationToken }) => {
+  const verifyUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/verify-email?token=${verificationToken}`;
+  const content = `
+    <p>Dear <strong>${name}</strong>,</p>
+    <p>Thank you for registering at <strong>SmartCart</strong>! Please verify your email address to activate your account.</p>
+    <div style="text-align:center;">
+      <a href="${verifyUrl}" class="btn">Verify My Email</a>
+    </div>
+    <div class="divider"></div>
+    <p style="font-size:11px; color:#888880;">This link expires in <strong>24 hours</strong>. If you did not register, please ignore this email.</p>
+    <p style="font-size:11px; color:#888880;">If the button does not work, copy and paste this link:<br/><a href="${verifyUrl}" style="color:#C9A84C;">${verifyUrl}</a></p>
+  `;
+  await transporter.sendMail({
+    from:    `"SmartCart" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+    to,
+    subject: "Verify your SmartCart email ✦",
+    html:    baseTemplate("Email Verification", content),
+  });
+  console.log(`📧 Verification email sent to ${to}`);
+};
+
+// ══════════════════════════════════════════════════
+// 3. Email reset password
 // ══════════════════════════════════════════════════
 const sendPasswordResetEmail = async ({ to, name, resetToken }) => {
   const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password?token=${resetToken}`;
@@ -89,7 +113,7 @@ const sendPasswordResetEmail = async ({ to, name, resetToken }) => {
 };
 
 // ══════════════════════════════════════════════════
-// 3. Email konfirmimi i porosisë
+// 4. Email konfirmimi i porosisë
 // ══════════════════════════════════════════════════
 const sendOrderConfirmationEmail = async ({ to, name, orderId, total, items = [], paymentMethod }) => {
   const itemsHtml = items.map(item => `
@@ -146,7 +170,7 @@ const sendOrderConfirmationEmail = async ({ to, name, orderId, total, items = []
 };
 
 // ══════════════════════════════════════════════════
-// 4. Email ndryshimi i fjalëkalimit
+// 5. Email ndryshimi i fjalëkalimit
 // ══════════════════════════════════════════════════
 const sendPasswordChangedEmail = async ({ to, name }) => {
   const content = `
@@ -167,6 +191,7 @@ const sendPasswordChangedEmail = async ({ to, name }) => {
 
 module.exports = {
   sendWelcomeEmail,
+  sendVerificationEmail,
   sendPasswordResetEmail,
   sendOrderConfirmationEmail,
   sendPasswordChangedEmail,

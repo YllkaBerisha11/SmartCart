@@ -58,7 +58,7 @@ class UserRepository {
     return user;
   }
 
-  // ── Reset Token (kolona: reset_token, reset_token_expiry) ──
+  // ── Reset Token ────────────────────────────────
   async saveResetToken(id, token, expiry) {
     await User.update(
       { reset_token: token, reset_token_expiry: expiry },
@@ -78,6 +78,27 @@ class UserRepository {
   async clearResetToken(id) {
     await User.update(
       { reset_token: null, reset_token_expiry: null },
+      { where: { id } }
+    );
+  }
+
+  // ── Email Verification ─────────────────────────
+  async saveVerificationToken(id, token) {
+    await User.update(
+      { verification_token: token, is_verified: 0 },
+      { where: { id } }
+    );
+  }
+
+  async findByVerificationToken(token) {
+    return User.findOne({
+      where: { verification_token: token },
+    });
+  }
+
+  async verifyUser(id) {
+    await User.update(
+      { is_verified: 1, verification_token: null },
       { where: { id } }
     );
   }

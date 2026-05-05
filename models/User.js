@@ -45,6 +45,17 @@ const User = sequelize.define(
       allowNull: true,
       field: "reset_token_expiry"
     },
+    is_verified: {
+      type: DataTypes.TINYINT,
+      allowNull: false,
+      defaultValue: 1,
+      field: "is_verified"
+    },
+    verification_token: {
+      type: DataTypes.STRING(255),
+      allowNull: true,
+      field: "verification_token"
+    },
   },
   {
     timestamps: false,

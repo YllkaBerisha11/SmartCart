@@ -6,11 +6,10 @@ const AuditLog    = require("../models/AuditLog");
 const User        = require("../models/User");
 const { protect, authorizeRoles, verifyRefreshToken } = require("../middleware/authMiddleware");
 
-// ── SCHEMAS ─────────────────────────────────────
 const registerSchema = Joi.object({
-  name:     Joi.string().min(3).max(50).required().messages({ "string.min":"Emri duhet të ketë të paktën 3 karaktere!", "any.required":"Emri është i detyrueshëm!" }),
-  email:    Joi.string().email().required().messages({ "string.email":"Email i pavlefshëm!", "any.required":"Emaili është i detyrueshëm!" }),
-  password: Joi.string().min(6).required().messages({ "string.min":"Fjalëkalimi duhet të ketë të paktën 6 karaktere!", "any.required":"Fjalëkalimi është i detyrueshëm!" }),
+  name:     Joi.string().min(3).max(50).required(),
+  email:    Joi.string().email().required(),
+  password: Joi.string().min(6).required(),
   role:     Joi.string().valid("user","admin").default("user"),
 });
 
@@ -24,21 +23,17 @@ const updateProfileSchema = Joi.object({
   email: Joi.string().email().optional(),
 });
 
-// ══════════════════════════════════════════════════
 // 1. REGISTER
-// ══════════════════════════════════════════════════
 router.post("/register", async (req, res) => {
   try {
     const { error } = registerSchema.validate(req.body);
     if (error) return res.status(400).json({ message: error.details[0].message });
     const result = await userService.register(req.body, req.ip);
-    res.status(201).json({ message: "✅ Regjistrimi u krye me sukses!", ...result });
+    res.status(201).json({ message: "✅ Regjistrimi u krye! Kontrollo email-in për aktivizim.", ...result });
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 2. LOGIN — kthen accessToken + refreshToken
-// ══════════════════════════════════════════════════
+// 2. LOGIN
 router.post("/login", async (req, res) => {
   try {
     const { error } = loginSchema.validate(req.body);
@@ -48,9 +43,17 @@ router.post("/login", async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 3. REFRESH TOKEN
-// ══════════════════════════════════════════════════
+// 3. VERIFY EMAIL
+router.get("/verify-email", async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) return res.status(400).json({ message: "Token mungon!" });
+    await userService.verifyEmail(token, req.ip);
+    res.json({ message: "✅ Llogaria u aktivizua me sukses! Tani mund të kyçesh." });
+  } catch (err) { res.status(400).json({ message: err.message }); }
+});
+
+// 4. REFRESH TOKEN
 router.post("/refresh", verifyRefreshToken, async (req, res) => {
   try {
     const tokens = await userService.refreshToken(req.user.id, req.ip);
@@ -58,9 +61,7 @@ router.post("/refresh", verifyRefreshToken, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 4. LOGOUT
-// ══════════════════════════════════════════════════
+// 5. LOGOUT
 router.post("/logout", protect, async (req, res) => {
   try {
     await userService.logout(req.user.id, req.ip);
@@ -68,9 +69,7 @@ router.post("/logout", protect, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 5. FORGOT PASSWORD
-// ══════════════════════════════════════════════════
+// 6. FORGOT PASSWORD
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
@@ -80,9 +79,7 @@ router.post("/forgot-password", async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 6. RESET PASSWORD me token
-// ══════════════════════════════════════════════════
+// 7. RESET PASSWORD
 router.post("/reset-password", async (req, res) => {
   try {
     const { token, newPassword } = req.body;
@@ -92,9 +89,7 @@ router.post("/reset-password", async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 7. GET PROFILE
-// ══════════════════════════════════════════════════
+// 8. GET PROFILE
 router.get("/profile", protect, async (req, res) => {
   try {
     const user = await userService.getProfile(req.user.id);
@@ -102,9 +97,7 @@ router.get("/profile", protect, async (req, res) => {
   } catch (err) { res.status(404).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 8. UPDATE PROFILE
-// ══════════════════════════════════════════════════
+// 9. UPDATE PROFILE
 router.put("/profile", protect, async (req, res) => {
   try {
     const { error } = updateProfileSchema.validate(req.body);
@@ -114,9 +107,7 @@ router.put("/profile", protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 9. CHANGE PASSWORD
-// ══════════════════════════════════════════════════
+// 10. CHANGE PASSWORD
 router.put("/password", protect, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -126,9 +117,7 @@ router.put("/password", protect, async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 10. GET ALL USERS — Admin me pagination + filtering
-// ══════════════════════════════════════════════════
+// 11. GET ALL USERS — Admin
 router.get("/", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const filters = {
@@ -142,9 +131,7 @@ router.get("/", protect, authorizeRoles("admin"), async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 11. DELETE USER (Admin)
-// ══════════════════════════════════════════════════
+// 12. DELETE USER (Admin)
 router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     await userService.deleteUser(parseInt(req.params.id), req.user.id, req.ip);
@@ -152,26 +139,19 @@ router.delete("/:id", protect, authorizeRoles("admin"), async (req, res) => {
   } catch (err) { res.status(400).json({ message: err.message }); }
 });
 
-// ══════════════════════════════════════════════════
-// 12. AUDIT LOGS (Admin) me pagination
-// ══════════════════════════════════════════════════
+// 13. AUDIT LOGS (Admin)
 router.get("/audit-logs", protect, authorizeRoles("admin"), async (req, res) => {
   try {
     const page   = parseInt(req.query.page)  || 1;
     const limit  = parseInt(req.query.limit) || 50;
     const offset = (page - 1) * limit;
-
     const { count, rows } = await AuditLog.findAndCountAll({
       include: [{ model: User, attributes: ["id","name","email"] }],
       order:   [["createdAt","DESC"]],
       limit,
       offset,
     });
-
-    res.json({
-      data: rows,
-      pagination: { total: count, page, limit, totalPages: Math.ceil(count / limit) },
-    });
+    res.json({ data: rows, pagination: { total: count, page, limit, totalPages: Math.ceil(count / limit) } });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
