@@ -23,9 +23,6 @@ export default function ProfilePage() {
   const [confirmPass,    setConfirmPass]    = useState("");
   const [showPasses,     setShowPasses]     = useState({ current: false, new: false, confirm: false });
 
-  const token   = localStorage.getItem("token");
-  const headers = { Authorization: `Bearer ${token}` };
-
   const bg          = isDark ? "#0A0A0A" : "#F5F5F0";
   const cardBg      = isDark ? "#111111" : "#FFFFFF";
   const heroBg      = isDark ? "#111111" : "#EBEBEB";
@@ -34,8 +31,15 @@ export default function ProfilePage() {
   const borderColor = isDark ? "rgba(201,168,76,0.12)" : "rgba(201,168,76,0.25)";
   const inputBg     = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)";
 
+  // ✅ getHeaders funksion — zgjidhë ESLint warning
+  const getHeaders = () => {
+    const token = localStorage.getItem("token");
+    return { Authorization: `Bearer ${token}` };
+  };
+
   useEffect(() => {
     if (activeTab !== "orders") return;
+    const headers = getHeaders();
     setOrdersLoading(true);
     axios.get("http://localhost:5000/api/v1/orders/my", { headers })
       .then(res => setOrders(res.data))
@@ -48,7 +52,11 @@ export default function ProfilePage() {
     if (!/\S+@\S+\.\S+/.test(email)) { toast.error("Invalid email."); return; }
     setSaving(true);
     try {
-      const res = await axios.put("http://localhost:5000/api/v1/users/profile", { name, email }, { headers });
+      const res = await axios.put(
+        "http://localhost:5000/api/v1/users/profile",
+        { name, email },
+        { headers: getHeaders() }
+      );
       if (setUser) setUser(res.data.user || { ...user, name, email });
       toast.success(t.profileUpdated || "✅ Profile updated!");
     } catch (err) {
@@ -63,7 +71,11 @@ export default function ProfilePage() {
     if (newPass !== confirmPass) { toast.error("Passwords do not match."); return; }
     setSaving(true);
     try {
-      await axios.put("http://localhost:5000/api/v1/users/password", { currentPassword: currentPass, newPassword: newPass }, { headers });
+      await axios.put(
+        "http://localhost:5000/api/v1/users/password",
+        { currentPassword: currentPass, newPassword: newPass },
+        { headers: getHeaders() }
+      );
       toast.success(t.passwordChanged || "✅ Password changed!");
       setCurrentPass(""); setNewPass(""); setConfirmPass("");
     } catch (err) {
@@ -73,11 +85,19 @@ export default function ProfilePage() {
   };
 
   const getStatusColor = (status) => {
-    const map = { pending: "#FFC107", processing: "#2196F3", shipped: "#FF9800", delivered: "#4CAF50", cancelled: "#F44336", exchange: "#C9A84C", return: "#FF9800" };
+    const map = {
+      pending:    "#FFC107",
+      processing: "#2196F3",
+      shipped:    "#FF9800",
+      delivered:  "#4CAF50",
+      cancelled:  "#F44336",
+      exchange:   "#C9A84C",
+      return:     "#FF9800"
+    };
     return map[status] || "#C9A84C";
   };
 
-  const initials = (user?.name || "U").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const initials   = (user?.name || "U").split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const inputStyle = { width: "100%", padding: "12px 14px", background: inputBg, border: `1px solid ${borderColor}`, borderRadius: "4px", color: textColor, fontFamily: "Montserrat, sans-serif", fontSize: "13px", outline: "none", boxSizing: "border-box" };
   const labelStyle = { display: "block", fontSize: "10px", letterSpacing: "2px", color: grayColor, textTransform: "uppercase", marginBottom: "6px" };
 
@@ -111,7 +131,7 @@ export default function ProfilePage() {
           {[
             { key: "profile",  label: t.tabProfile  || "👤 Profile" },
             { key: "security", label: t.tabSecurity || "🔒 Security" },
-            { key: "orders",   label: t.tabOrders   || "📦 Orders" },
+            { key: "orders",   label: t.tabOrders   || "📦 Orders"  },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               style={{ padding: "12px 24px", background: activeTab === tab.key ? "rgba(201,168,76,0.1)" : "transparent", color: activeTab === tab.key ? "#C9A84C" : grayColor, border: "none", borderBottom: activeTab === tab.key ? "2px solid #C9A84C" : "2px solid transparent", cursor: "pointer", fontSize: "10px", letterSpacing: "2px", textTransform: "uppercase", fontFamily: "Montserrat, sans-serif", whiteSpace: "nowrap", transition: "all 0.2s" }}>
@@ -176,7 +196,7 @@ export default function ProfilePage() {
             </h2>
             {[
               { label: t.currentPassword || "Current Password", value: currentPass, set: setCurrentPass, key: "current" },
-              { label: t.newPassword     || "New Password",     value: newPass,     set: setNewPass,     key: "new" },
+              { label: t.newPassword     || "New Password",     value: newPass,     set: setNewPass,     key: "new"     },
               { label: t.confirmPassword || "Confirm Password", value: confirmPass, set: setConfirmPass, key: "confirm" },
             ].map(f => (
               <div key={f.key} style={{ marginBottom: "18px" }}>
@@ -206,9 +226,19 @@ export default function ProfilePage() {
               </div>
             )}
 
-            <div style={{ padding: "12px 16px", background: "rgba(33,150,243,0.05)", border: "1px solid rgba(33,150,243,0.15)", borderRadius: "4px", marginBottom: "24px" }}>
+            <div style={{ padding: "12px 16px", background: "rgba(33,150,243,0.05)", border: "1px solid rgba(33,150,243,0.15)", borderRadius: "4px", marginBottom: "16px" }}>
               <p style={{ fontSize: "11px", color: "#2196F3", margin: 0, lineHeight: "1.6" }}>
                 🔒 Password is stored encrypted (bcrypt). Minimum 8 characters recommended.
+              </p>
+            </div>
+
+            <div style={{ marginBottom: "24px" }}>
+              <p style={{ fontSize: "12px", color: grayColor, fontWeight: "300", margin: 0 }}>
+                Don't remember your current password?{" "}
+                <span onClick={() => navigate("/forgot-password")}
+                  style={{ color: "#C9A84C", cursor: "pointer", textDecoration: "underline", fontSize: "12px" }}>
+                  Reset it here
+                </span>
               </p>
             </div>
 
